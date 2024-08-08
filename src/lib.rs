@@ -175,7 +175,7 @@ pub struct Report<'a, S: Span = Range<usize>> {
     msg: Option<String>,
     note: Option<String>,
     help: Option<String>,
-    location: (<S::SourceId as ToOwned>::Owned, usize),
+    location: Option<(<S::SourceId as ToOwned>::Owned, usize)>,
     labels: Vec<Label<S>>,
     config: Config,
 }
@@ -184,8 +184,6 @@ impl<S: Span> Report<'_, S> {
     /// Begin building a new [`Report`].
     pub fn build<Id: Into<<S::SourceId as ToOwned>::Owned>>(
         kind: ReportKind,
-        src_id: Id,
-        offset: usize,
     ) -> ReportBuilder<S> {
         ReportBuilder {
             kind,
@@ -193,7 +191,7 @@ impl<S: Span> Report<'_, S> {
             msg: None,
             note: None,
             help: None,
-            location: (src_id.into(), offset),
+            location: None,
             labels: Vec::new(),
             config: Config::default(),
         }
@@ -258,7 +256,7 @@ pub struct ReportBuilder<'a, S: Span> {
     msg: Option<String>,
     note: Option<String>,
     help: Option<String>,
-    location: (<S::SourceId as ToOwned>::Owned, usize),
+    location: Option<(<S::SourceId as ToOwned>::Owned, usize)>,
     labels: Vec<Label<S>>,
     config: Config,
 }
@@ -326,6 +324,17 @@ impl<'a, S: Span> ReportBuilder<'a, S> {
     /// Add multiple labels to the report.
     pub fn with_labels<L: IntoIterator<Item = Label<S>>>(mut self, labels: L) -> Self {
         self.add_labels(labels);
+        self
+    }
+
+    /// Set a location of this report
+    pub fn set_location(&mut self, location: Option<(<S::SourceId as ToOwned>::Owned, usize)>) {
+        self.location = location;
+    }
+
+    /// Set a location of this report
+    pub fn with_location(mut self, location: Option<(<S::SourceId as ToOwned>::Owned, usize)>) -> Self{
+        self.set_location(location);
         self
     }
 

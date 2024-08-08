@@ -242,10 +242,9 @@ impl<S: Span> Report<'_, S> {
             let line_range = src.get_line_range(&char_span);
 
             // File name & reference
-            let location = if src_id == self.location.0.borrow() {
-                self.location.1
-            } else {
-                labels[0].char_span.start
+            let location = match &self.location {
+                Some(location) if src_id == location.0.borrow() => location.1,
+                _ => labels[0].char_span.start,
             };
             let line_and_col = match self.config.index_type {
                 IndexType::Char => src.get_offset_line(location),
@@ -504,8 +503,7 @@ impl<S: Span> Report<'_, S> {
 
                 let margin_label = multi_labels_with_message
                     .iter()
-                    .enumerate()
-                    .filter_map(|(_i, label)| {
+                    .filter_map(|label| {
                         let is_start = line.span().contains(&label.char_span.start);
                         let is_end = line.span().contains(&label.last_offset());
                         if is_start {
@@ -532,8 +530,7 @@ impl<S: Span> Report<'_, S> {
                 // Generate a list of labels for this line, along with their label columns
                 let mut line_labels = multi_labels_with_message
                     .iter()
-                    .enumerate()
-                    .filter_map(|(_i, label)| {
+                    .filter_map(|label| {
                         let is_start = line.span().contains(&label.char_span.start);
                         let is_end = line.span().contains(&label.last_offset());
                         if is_start
@@ -932,7 +929,7 @@ mod tests {
 
     #[test]
     fn one_message() {
-        let msg = Report::<Range<usize>>::build(ReportKind::Error, (), 0)
+        let msg = Report::<Range<usize>>::build::<()>(ReportKind::Error)
             .with_config(no_color_and_ascii())
             .with_message("can't compare apples with oranges")
             .finish()
@@ -945,7 +942,7 @@ mod tests {
     #[test]
     fn two_labels_without_messages() {
         let source = "apple == orange;";
-        let msg = Report::<Range<usize>>::build(ReportKind::Error, (), 0)
+        let msg = Report::<Range<usize>>::build::<()>(ReportKind::Error)
             .with_config(no_color_and_ascii())
             .with_message("can't compare apples with oranges")
             .with_label(Label::new(0..5))
@@ -965,7 +962,7 @@ mod tests {
     #[test]
     fn two_labels_with_messages() {
         let source = "apple == orange;";
-        let msg = Report::<Range<usize>>::build(ReportKind::Error, (), 0)
+        let msg = Report::<Range<usize>>::build::<()>(ReportKind::Error)
             .with_config(no_color_and_ascii())
             .with_message("can't compare apples with oranges")
             .with_label(Label::new(0..5).with_message("This is an apple"))
@@ -989,7 +986,7 @@ mod tests {
     #[test]
     fn multi_byte_chars() {
         let source = "äpplë == örängë;";
-        let msg = Report::<Range<usize>>::build(ReportKind::Error, (), 0)
+        let msg = Report::<Range<usize>>::build::<()>(ReportKind::Error)
             .with_config(no_color_and_ascii().with_index_type(IndexType::Char))
             .with_message("can't compare äpplës with örängës")
             .with_label(Label::new(0..5).with_message("This is an äpplë"))
@@ -1013,7 +1010,7 @@ mod tests {
     #[test]
     fn byte_label() {
         let source = "äpplë == örängë;";
-        let msg = Report::<Range<usize>>::build(ReportKind::Error, (), 0)
+        let msg = Report::<Range<usize>>::build::<()>(ReportKind::Error)
             .with_config(no_color_and_ascii().with_index_type(IndexType::Byte))
             .with_message("can't compare äpplës with örängës")
             .with_label(Label::new(0..7).with_message("This is an äpplë"))
@@ -1037,7 +1034,8 @@ mod tests {
     #[test]
     fn byte_column() {
         let source = "äpplë == örängë;";
-        let msg = Report::<Range<usize>>::build(ReportKind::Error, (), 11)
+        let msg = Report::<Range<usize>>::build::<()>(ReportKind::Error)
+            .with_location(Some(((), 11)))
             .with_config(no_color_and_ascii().with_index_type(IndexType::Byte))
             .with_message("can't compare äpplës with örängës")
             .with_label(Label::new(0..7).with_message("This is an äpplë"))
@@ -1061,7 +1059,8 @@ mod tests {
     #[test]
     fn label_at_end_of_long_line() {
         let source = format!("{}orange", "apple == ".repeat(100));
-        let msg = Report::<Range<usize>>::build(ReportKind::Error, (), 0)
+        let msg = Report::<Range<usize>>::build::<()>(ReportKind::Error)
+            .with_location(Some(((), 0)))
             .with_config(no_color_and_ascii())
             .with_message("can't compare apples with oranges")
             .with_label(
@@ -1084,7 +1083,8 @@ mod tests {
     #[test]
     fn label_of_width_zero_at_end_of_line() {
         let source = "apple ==\n";
-        let msg = Report::<Range<usize>>::build(ReportKind::Error, (), 0)
+        let msg = Report::<Range<usize>>::build::<()>(ReportKind::Error)
+            .with_location(Some(((), 0)))
             .with_config(no_color_and_ascii().with_index_type(IndexType::Byte))
             .with_message("unexpected end of file")
             .with_label(Label::new(9..9).with_message("Unexpected end of file"))
@@ -1105,7 +1105,7 @@ mod tests {
     #[test]
     fn empty_input() {
         let source = "";
-        let msg = Report::<Range<usize>>::build(ReportKind::Error, (), 0)
+        let msg = Report::<Range<usize>>::build::<()>(ReportKind::Error)
             .with_config(no_color_and_ascii())
             .with_message("unexpected end of file")
             .with_label(Label::new(0..0).with_message("No more fruit!"))
@@ -1126,7 +1126,7 @@ mod tests {
     #[test]
     fn empty_input_help() {
         let source = "";
-        let msg = Report::<Range<usize>>::build(ReportKind::Error, (), 0)
+        let msg = Report::<Range<usize>>::build::<()>(ReportKind::Error)
             .with_config(no_color_and_ascii())
             .with_message("unexpected end of file")
             .with_label(Label::new(0..0).with_message("No more fruit!"))
@@ -1150,7 +1150,7 @@ mod tests {
     #[test]
     fn empty_input_note() {
         let source = "";
-        let msg = Report::<Range<usize>>::build(ReportKind::Error, (), 0)
+        let msg = Report::<Range<usize>>::build::<()>(ReportKind::Error)
             .with_config(no_color_and_ascii())
             .with_message("unexpected end of file")
             .with_label(Label::new(0..0).with_message("No more fruit!"))
@@ -1174,7 +1174,7 @@ mod tests {
     #[test]
     fn empty_input_help_note() {
         let source = "";
-        let msg = Report::<Range<usize>>::build(ReportKind::Error, (), 0)
+        let msg = Report::<Range<usize>>::build::<()>(ReportKind::Error)
             .with_config(no_color_and_ascii())
             .with_message("unexpected end of file")
             .with_label(Label::new(0..0).with_message("No more fruit!"))
@@ -1204,7 +1204,7 @@ mod tests {
 
         for i in 0..=source.len() {
             for j in i..=source.len() {
-                let _ = Report::<Range<usize>>::build(ReportKind::Error, (), 0)
+                let _ = Report::<Range<usize>>::build::<()>(ReportKind::Error)
                     .with_config(no_color_and_ascii().with_index_type(IndexType::Byte))
                     .with_message("Label")
                     .with_label(Label::new(i..j).with_message("Label"))
@@ -1217,7 +1217,7 @@ mod tests {
     #[test]
     fn multiline_label() {
         let source = "apple\n==\norange";
-        let msg = Report::<Range<usize>>::build(ReportKind::Error, (), 0)
+        let msg = Report::<Range<usize>>::build::<()>(ReportKind::Error)
             .with_config(no_color_and_ascii())
             .with_label(Label::new(0..source.len()).with_message("illegal comparison"))
             .finish()
@@ -1239,7 +1239,7 @@ mod tests {
     #[test]
     fn partially_overlapping_labels() {
         let source = "https://example.com/";
-        let msg = Report::<Range<usize>>::build(ReportKind::Error, (), 0)
+        let msg = Report::<Range<usize>>::build::<()>(ReportKind::Error)
             .with_config(no_color_and_ascii())
             .with_label(Label::new(0..source.len()).with_message("URL"))
             .with_label(Label::new(0..source.find(':').unwrap()).with_message("scheme"))
@@ -1262,7 +1262,7 @@ mod tests {
     #[test]
     fn multiple_labels_same_span() {
         let source = "apple == orange;";
-        let msg = Report::<Range<usize>>::build(ReportKind::Error, (), 0)
+        let msg = Report::<Range<usize>>::build::<()>(ReportKind::Error)
             .with_config(no_color_and_ascii())
             .with_message("can't compare apples with oranges")
             .with_label(Label::new(0..5).with_message("This is an apple"))
@@ -1297,7 +1297,7 @@ mod tests {
     #[test]
     fn note() {
         let source = "apple == orange;";
-        let msg = Report::<Range<usize>>::build(ReportKind::Error, (), 0)
+        let msg = Report::<Range<usize>>::build::<()>(ReportKind::Error)
             .with_config(no_color_and_ascii())
             .with_message("can't compare apples with oranges")
             .with_label(Label::new(0..5).with_message("This is an apple"))
@@ -1323,7 +1323,7 @@ mod tests {
     #[test]
     fn help() {
         let source = "apple == orange;";
-        let msg = Report::<Range<usize>>::build(ReportKind::Error, (), 0)
+        let msg = Report::<Range<usize>>::build::<()>(ReportKind::Error)
             .with_config(no_color_and_ascii())
             .with_message("can't compare apples with oranges")
             .with_label(Label::new(0..5).with_message("This is an apple"))
@@ -1349,7 +1349,7 @@ mod tests {
     #[test]
     fn help_and_note() {
         let source = "apple == orange;";
-        let msg = Report::<Range<usize>>::build(ReportKind::Error, (), 0)
+        let msg = Report::<Range<usize>>::build::<()>(ReportKind::Error)
             .with_config(no_color_and_ascii())
             .with_message("can't compare apples with oranges")
             .with_label(Label::new(0..5).with_message("This is an apple"))

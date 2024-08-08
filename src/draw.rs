@@ -1,6 +1,7 @@
 use super::*;
 use yansi::Paint;
 
+#[allow(dead_code)]
 pub struct Characters {
     pub hbar: char,
     pub vbar: char,
@@ -234,7 +235,7 @@ impl ColorGenerator {
     pub fn from_state(state: [u16; 3], min_brightness: f32) -> Self {
         Self {
             state,
-            min_brightness: min_brightness.max(0.0).min(1.0),
+            min_brightness: min_brightness.clamp(0.0, 1.0),
         }
     }
 
