@@ -170,14 +170,22 @@ impl<S: Span> Label<S> {
 
 /// A type representing a diagnostic that is ready to be written to output.
 pub struct Report<'a, S: Span = Range<usize>> {
-    kind: ReportKind<'a>,
-    code: Option<String>,
-    msg: Option<String>,
-    note: Option<String>,
-    help: Option<String>,
-    location: Option<(<S::SourceId as ToOwned>::Owned, usize)>,
-    labels: Vec<Label<S>>,
-    config: Config,
+    /// The kind of the report.
+    pub kind: ReportKind<'a>,
+    /// The error code for this report.
+    pub code: Option<String>,
+    /// Error message.
+    pub msg: Option<String>,
+    /// Additional note.
+    pub note: Option<String>,
+    /// Help message.
+    pub help: Option<String>,
+    /// The location of the error.
+    pub location: Option<(<S::SourceId as ToOwned>::Owned, usize)>,
+    /// Additional labels.
+    pub labels: Vec<Label<S>>,
+    /// The configuration for report rendering.
+    pub config: Config,
 }
 
 impl<S: Span> Report<'_, S> {
