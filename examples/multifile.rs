@@ -8,7 +8,7 @@ fn main() {
     let b = colors.next();
     let c = colors.next();
 
-    Report::build::<&'static str>(ReportKind::Error)
+    Report::build(ReportKind::Error)
         .with_code(3)
         .with_message("Cannot add types Nat and Str".to_string())
         .with_label(

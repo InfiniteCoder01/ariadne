@@ -182,9 +182,7 @@ pub struct Report<'a, S: Span = Range<usize>> {
 
 impl<S: Span> Report<'_, S> {
     /// Begin building a new [`Report`].
-    pub fn build<Id: Into<<S::SourceId as ToOwned>::Owned>>(
-        kind: ReportKind,
-    ) -> ReportBuilder<S> {
+    pub fn build(kind: ReportKind) -> ReportBuilder<S> {
         ReportBuilder {
             kind,
             code: None,
@@ -333,7 +331,10 @@ impl<'a, S: Span> ReportBuilder<'a, S> {
     }
 
     /// Set a location of this report
-    pub fn with_location(mut self, location: Option<(<S::SourceId as ToOwned>::Owned, usize)>) -> Self{
+    pub fn with_location(
+        mut self,
+        location: Option<(<S::SourceId as ToOwned>::Owned, usize)>,
+    ) -> Self {
         self.set_location(location);
         self
     }

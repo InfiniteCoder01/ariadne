@@ -3,7 +3,7 @@ use ariadne::{Color, ColorGenerator, Config, Label, Report, ReportKind, Source};
 fn main() {
     let mut colors = ColorGenerator::new();
 
-    Report::build::<&'static str>(ReportKind::Error)
+    Report::build(ReportKind::Error)
         .with_location(Some(("stresstest.tao", 13)))
         .with_code(3)
         .with_message("Incompatible types".to_string())
